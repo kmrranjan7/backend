@@ -16,7 +16,18 @@ function errorHandler(error, req, res, next) {
 
   if (error instanceof UniqueConstraintError) {
     statusCode = 409;
-    message = 'A user with this email already exists';
+    const fields = Object.keys(error.fields || {});
+
+    if (fields.includes('email')) {
+      message = 'A user with this email already exists';
+    } else if (fields.includes('post_slug') || fields.includes('postSlug')) {
+      message = 'postSlug already exists';
+    } else if (fields.includes('post_id') || fields.includes('postId')) {
+      message = 'postId already exists';
+    } else {
+      message = 'A record with the supplied unique value already exists';
+    }
+
     details = null;
   } else if (error instanceof ValidationError) {
     statusCode = 400;

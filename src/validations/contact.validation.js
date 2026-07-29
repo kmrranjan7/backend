@@ -1,0 +1,116 @@
+const ApiError = require('../utils/api-error');
+const { CONTACT_SORT_FIELDS } = require('../constants/contact.constants');
+
+const CONTACT_FIELDS = Object.freeze({
+  fullName: { min: 2, max: 120 },
+  email: { max: 160 },
+  phone: {},
+  inquiryType: { min: 2, max: 60 },
+  subject: { min: 3, max: 180 },
+  message: { min: 10, max: 4000 },
+});
+
+function validateContact(req, res, next) {
+  const errors = [];
+  const allowedFields = Object.keys(CONTACT_FIELDS);
+
+  Object.keys(req.body).forEach((field) => {
+    if (!allowedFields.includes(field)) {
+      errors.push({ field, message: `${field} is not allowed` });
+    }
+  });
+
+  Object.entries(CONTACT_FIELDS).forEach(([field, limits]) => {
+    const value = req.body[field];
+
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      errors.push({ field, message: `${field} is required` });
+      return;
+    }
+
+    const length = value.trim().length;
+
+    if (limits.min && length < limits.min) {
+      errors.push({
+        field,
+        message: `${field} must contain at least ${limits.min} characters`,
+      });
+    }
+
+    if (limits.max && length > limits.max) {
+      errors.push({
+        field,
+        message: `${field} must not exceed ${limits.max} characters`,
+      });
+    }
+  });
+
+  if (
+    typeof req.body.email === 'string'
+    && req.body.email.length <= 160
+    && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email.trim())
+  ) {
+    errors.push({ field: 'email', message: 'email must be valid' });
+  }
+
+  if (
+    typeof req.body.phone === 'string'
+    && !/^[0-9]{10}$/.test(req.body.phone.trim())
+  ) {
+    errors.push({ field: 'phone', message: 'phone must be a valid 10-digit number' });
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(422, 'Validation failed', errors));
+  }
+
+  return next();
+}
+
+function validateContactQuery(req, res, next) {
+  const allowedFields = ['page', 'size', 'sortBy', 'sortDir'];
+  const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
+  const page = Number(req.query.page ?? 0);
+  const size = Number(req.query.size ?? 20);
+  const sortBy = req.query.sortBy || 'createdAt';
+  const sortDir = (req.query.sortDir || 'desc').toLowerCase();
+  const errors = [];
+
+  if (unknownField) {
+    errors.push({ field: unknownField, message: `${unknownField} is not allowed` });
+  }
+
+  if (!Number.isInteger(page) || page < 0) {
+    errors.push({ field: 'page', message: 'page must be an integer of 0 or greater' });
+  }
+
+  if (!Number.isInteger(size) || size < 1 || size > 100) {
+    errors.push({ field: 'size', message: 'size must be an integer between 1 and 100' });
+  }
+
+  if (!CONTACT_SORT_FIELDS[sortBy]) {
+    errors.push({
+      field: 'sortBy',
+      message: `sortBy must be one of: ${Object.keys(CONTACT_SORT_FIELDS).join(', ')}`,
+    });
+  }
+
+  if (!['asc', 'desc'].includes(sortDir)) {
+    errors.push({ field: 'sortDir', message: 'sortDir must be asc or desc' });
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(422, 'Validation failed', errors));
+  }
+
+  req.query = {
+    page,
+    size,
+    sortBy: CONTACT_SORT_FIELDS[sortBy],
+    sortDir,
+  };
+
+  return next();
+}
+
+module.exports = { validateContact, validateContactQuery };

@@ -1,11 +1,14 @@
 const express = require('express');
 const routes = require('./routes');
+const contactRoutes = require('./routes/contact.routes');
+const corsMiddleware = require('./middleware/cors.middleware');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
 const { successResponse } = require('./utils/api-response');
 
 const app = express();
 
 app.disable('x-powered-by');
+app.use(corsMiddleware);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -17,6 +20,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/v1', routes);
+app.use('/api/contact', contactRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

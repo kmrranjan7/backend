@@ -11,7 +11,7 @@ const sequelize = new Sequelize(env.database.name, env.database.user, env.databa
     freezeTableName: true,
   },
   pool: {
-    max: 10,
+    max: 8,
     min: 0,
     acquire: 30000,
     idle: 10000,
