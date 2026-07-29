@@ -1,0 +1,33 @@
+const UserDetails = require('../models/user-details.model');
+
+class UserDetailsRepository {
+  async create(payload) {
+    return UserDetails.create(payload);
+  }
+
+  async findAll({ limit, offset }) {
+    return UserDetails.findAndCountAll({
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
+    });
+  }
+
+  async findById(id) {
+    return UserDetails.findByPk(id);
+  }
+
+  async findByEmail(email) {
+    return UserDetails.findOne({ where: { email } });
+  }
+
+  async update(user, payload) {
+    return user.update(payload);
+  }
+
+  async delete(user) {
+    return user.destroy();
+  }
+}
+
+module.exports = UserDetailsRepository;
