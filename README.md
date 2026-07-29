@@ -61,3 +61,7 @@ Errors use:
   "errors": []
 }
 ```
+
+All route errors are forwarded to the centralized Express error middleware. Process-level
+`uncaughtException` and `unhandledRejection` events are handled globally and trigger a
+graceful HTTP server and database shutdown.

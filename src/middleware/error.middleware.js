@@ -6,6 +6,10 @@ function notFoundHandler(req, res, next) {
 }
 
 function errorHandler(error, req, res, next) {
+  if (res.headersSent) {
+    return next(error);
+  }
+
   let statusCode = error.statusCode || 500;
   let message = error.message || 'Internal server error';
   let details = error.details || null;

@@ -1,8 +1,10 @@
 const app = require('./app');
 const sequelize = require('./config/database');
 const env = require('./config/env');
+const registerGlobalExceptionHandlers = require('./middleware/global-exception-handler');
 
 let server;
+let isShuttingDown = false;
 
 async function startServer() {
   try {
@@ -13,27 +15,35 @@ async function startServer() {
     });
   } catch (error) {
     console.error('Unable to start server:', error);
-    process.exit(1);
+    await shutdown('startupFailure', 1);
   }
 }
 
-async function shutdown(signal) {
-  console.log(`${signal} received. Shutting down gracefully.`);
+async function shutdown(reason, exitCode = 0) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
 
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
+  console.log(`${reason} received. Shutting down gracefully.`);
+
+  try {
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+
+    await sequelize.close();
+  } catch (error) {
+    console.error('Error during graceful shutdown:', error);
+    exitCode = 1;
+  } finally {
+    process.exit(exitCode);
   }
-
-  await sequelize.close();
-  process.exit(0);
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-
-process.on('unhandledRejection', (error) => {
-  console.error('Unhandled promise rejection:', error);
-  shutdown('unhandledRejection');
+registerGlobalExceptionHandlers({
+  shutdown,
+  logger: console,
 });
 
 startServer();
