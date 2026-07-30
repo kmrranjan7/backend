@@ -5,15 +5,19 @@ const fields = {
   lastName: { type: 'string', min: 1, max: 100 },
   email: { type: 'email', max: 255 },
   mobile: { type: 'mobile', max: 20 },
+  password: { type: 'password', min: 8, max: 72 },
   status: { type: 'string', min: 1, max: 30 },
 };
 
 function validateField(name, value, rule) {
   if (typeof value !== 'string') return `${name} must be a string`;
 
-  const trimmed = value.trim();
+  const trimmed = rule.type === 'password' ? value : value.trim();
 
-  if (rule.min && trimmed.length < rule.min) return `${name} is required`;
+  if (rule.min && trimmed.length < rule.min) {
+    if (rule.type === 'password') return 'password must be between 8 and 72 characters';
+    return `${name} is required`;
+  }
   if (trimmed.length > rule.max) return `${name} must not exceed ${rule.max} characters`;
 
   if (rule.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {

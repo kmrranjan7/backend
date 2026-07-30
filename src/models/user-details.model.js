@@ -26,6 +26,10 @@ const UserDetails = sequelize.define(
       type: DataTypes.STRING(20),
       allowNull: false,
     },
+    passwordHash: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING(30),
       allowNull: false,
@@ -35,7 +39,16 @@ const UserDetails = sequelize.define(
   {
     tableName: 'user_details',
     timestamps: true,
+    defaultScope: {
+      attributes: { exclude: ['passwordHash'] },
+    },
   },
 );
+
+UserDetails.prototype.toJSON = function toJSON() {
+  const values = { ...this.get() };
+  delete values.passwordHash;
+  return values;
+};
 
 module.exports = UserDetails;
