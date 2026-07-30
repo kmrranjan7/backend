@@ -6,6 +6,7 @@ const POST_TYPES = Object.freeze([
   'ADMISSION',
   'SYLLABUS',
   'ANSWER_KEY',
+  'OTHERS',
 ]);
 
 const POST_STATUSES = Object.freeze([

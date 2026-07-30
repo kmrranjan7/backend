@@ -1,4 +1,5 @@
 const ApiError = require('../utils/api-error');
+const { parsePagination } = require('../utils/pagination');
 
 const fields = {
   firstName: { type: 'string', min: 1, max: 100 },
@@ -78,23 +79,13 @@ function validateId(req, res, next) {
 }
 
 function validatePagination(req, res, next) {
-  const page = Number(req.query.page || 1);
-  const limit = Number(req.query.limit || 20);
+  const unknownField = Object.keys(req.query).find((field) => !['page', 'size'].includes(field));
+  const { page, size, errors } = parsePagination(req.query);
 
-  if (!Number.isInteger(page) || page < 1) {
-    return next(new ApiError(422, 'Validation failed', [
-      { field: 'page', message: 'page must be a positive integer' },
-    ]));
-  }
+  if (unknownField) errors.push({ field: unknownField, message: `${unknownField} is not allowed` });
+  if (errors.length) return next(new ApiError(422, 'Validation failed', errors));
 
-  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-    return next(new ApiError(422, 'Validation failed', [
-      { field: 'limit', message: 'limit must be an integer between 1 and 100' },
-    ]));
-  }
-
-  req.query.page = page;
-  req.query.limit = limit;
+  req.query = { page, size };
   return next();
 }
 

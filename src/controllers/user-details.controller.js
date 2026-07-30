@@ -18,8 +18,7 @@ class UserDetailsController {
     const result = await this.service.getAll(req.query);
     return successResponse(res, {
       message: 'Users retrieved successfully',
-      data: result.users,
-      meta: result.pagination,
+      data: result,
     });
   };
 

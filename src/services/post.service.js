@@ -1,6 +1,7 @@
 const { randomInt } = require('crypto');
 const { promisify } = require('util');
 const ApiError = require('../utils/api-error');
+const { buildPage } = require('../utils/pagination');
 
 const randomIntAsync = promisify(randomInt);
 const CACHE_PREFIX = 'posts:';
@@ -53,16 +54,13 @@ class PostService {
       sortDir: query.sortDir.toUpperCase(),
     });
 
-    const response = {
+    const response = buildPage({
       content: rows.map((post) => this.toResponse(post)),
       page: query.page,
       size: query.size,
       totalElements: count,
-      totalPages: Math.ceil(count / query.size),
       sort: `${query.sortBy},${query.sortDir}`,
-      first: query.page === 0,
-      last: query.page >= Math.max(Math.ceil(count / query.size) - 1, 0),
-    };
+    });
 
     this.cache.set(cacheKey, response);
     return response;

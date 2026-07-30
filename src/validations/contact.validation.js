@@ -1,4 +1,5 @@
 const ApiError = require('../utils/api-error');
+const { parsePagination } = require('../utils/pagination');
 const { CONTACT_SORT_FIELDS } = require('../constants/contact.constants');
 
 const CONTACT_FIELDS = Object.freeze({
@@ -70,23 +71,14 @@ function validateContact(req, res, next) {
 function validateContactQuery(req, res, next) {
   const allowedFields = ['page', 'size', 'sortBy', 'sortDir'];
   const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
-  const page = Number(req.query.page ?? 0);
-  const size = Number(req.query.size ?? 20);
+  const { page, size, errors } = parsePagination(req.query);
   const sortBy = req.query.sortBy || 'createdAt';
   const sortDir = (req.query.sortDir || 'desc').toLowerCase();
-  const errors = [];
 
   if (unknownField) {
     errors.push({ field: unknownField, message: `${unknownField} is not allowed` });
   }
 
-  if (!Number.isInteger(page) || page < 0) {
-    errors.push({ field: 'page', message: 'page must be an integer of 0 or greater' });
-  }
-
-  if (!Number.isInteger(size) || size < 1 || size > 100) {
-    errors.push({ field: 'size', message: 'size must be an integer between 1 and 100' });
-  }
 
   if (!CONTACT_SORT_FIELDS[sortBy]) {
     errors.push({

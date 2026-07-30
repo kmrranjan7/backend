@@ -1,3 +1,5 @@
+const { buildPage } = require('../utils/pagination');
+
 class ContactService {
   constructor(contactRepository) {
     this.repository = contactRepository;
@@ -16,18 +18,13 @@ class ContactService {
       sortBy,
       sortDir: sortDir.toUpperCase(),
     });
-    const totalPages = Math.ceil(count / size);
-
-    return {
+    return buildPage({
       content: rows.map((contact) => this.toResponse(contact)),
       page,
       size,
       totalElements: count,
-      totalPages,
       sort: `${sortBy},${sortDir}`,
-      first: page === 0,
-      last: page >= Math.max(totalPages - 1, 0),
-    };
+    });
   }
 
   normalize(payload) {

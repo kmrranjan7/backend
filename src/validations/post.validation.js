@@ -1,4 +1,5 @@
 const ApiError = require('../utils/api-error');
+const { parsePagination } = require('../utils/pagination');
 const {
   POST_TYPES,
   POST_STATUSES,
@@ -138,19 +139,9 @@ function validatePostQuery(req, res, next) {
     ]));
   }
 
-  const page = Number(req.query.page ?? 0);
-  const size = Number(req.query.size ?? 20);
+  const { page, size, errors } = parsePagination(req.query);
   const sortBy = req.query.sortBy || 'createdAt';
   const sortDir = (req.query.sortDir || 'desc').toLowerCase();
-  const errors = [];
-
-  if (!Number.isInteger(page) || page < 0) {
-    errors.push({ field: 'page', message: 'page must be an integer of 0 or greater' });
-  }
-
-  if (!Number.isInteger(size) || size < 1 || size > 100) {
-    errors.push({ field: 'size', message: 'size must be an integer between 1 and 100' });
-  }
 
   if (!POST_SORT_FIELDS[sortBy]) {
     errors.push({

@@ -1,5 +1,6 @@
 const ApiError = require('../utils/api-error');
 const { hashPassword } = require('../utils/password');
+const { buildPage } = require('../utils/pagination');
 
 class UserDetailsService {
   constructor(userDetailsRepository) {
@@ -17,19 +18,19 @@ class UserDetailsService {
     return this.repository.create(normalizedPayload);
   }
 
-  async getAll({ page, limit }) {
-    const offset = (page - 1) * limit;
-    const { rows, count } = await this.repository.findAll({ limit, offset });
+  async getAll({ page, size }) {
+    const { rows, count } = await this.repository.findAll({
+      limit: size,
+      offset: page * size,
+    });
 
-    return {
-      users: rows,
-      pagination: {
-        page,
-        limit,
-        totalItems: count,
-        totalPages: Math.ceil(count / limit),
-      },
-    };
+    return buildPage({
+      content: rows,
+      page,
+      size,
+      totalElements: count,
+      sort: 'createdAt,desc',
+    });
   }
 
   async getById(id) {

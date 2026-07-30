@@ -12,13 +12,14 @@ class PostRepository {
     if (postType) filters.postType = postType;
 
     if (search) {
-      filters[Op.or] = [
+      const searchFilters = [
         { postTitle: { [Op.like]: search } },
         { department: { [Op.like]: search } },
         { organization: { [Op.like]: search } },
         { qualification: { [Op.like]: search } },
         { stateName: { [Op.like]: search } },
       ];
+      filters[Op.or] = searchFilters;
     }
 
     return Post.findAndCountAll({
