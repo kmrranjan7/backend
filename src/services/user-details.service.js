@@ -18,10 +18,11 @@ class UserDetailsService {
     return this.repository.create(normalizedPayload);
   }
 
-  async getAll({ page, size }) {
+  async getAll({ page, size, sortDir }) {
     const { rows, count } = await this.repository.findAll({
       limit: size,
       offset: page * size,
+      sortDir: sortDir.toUpperCase(),
     });
 
     return buildPage({
@@ -29,7 +30,7 @@ class UserDetailsService {
       page,
       size,
       totalElements: count,
-      sort: 'createdAt,desc',
+      sort: `createdAt,${sortDir}`,
     });
   }
 

@@ -6,10 +6,11 @@ class PostRepository {
     return Post.create(payload);
   }
 
-  async findAll({ search, postType, limit, offset, sortBy, sortDir }) {
+  async findAll({ search, postType, postStatus, limit, offset, sortBy, sortDir }) {
     const filters = {};
 
     if (postType) filters.postType = postType;
+    if (postStatus) filters.postStatus = postStatus;
 
     if (search) {
       const searchFilters = [

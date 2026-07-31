@@ -1,6 +1,5 @@
 const ApiError = require('../utils/api-error');
 const { parsePagination } = require('../utils/pagination');
-const { CONTACT_SORT_FIELDS } = require('../constants/contact.constants');
 
 const CONTACT_FIELDS = Object.freeze({
   fullName: { min: 2, max: 120 },
@@ -69,23 +68,15 @@ function validateContact(req, res, next) {
 }
 
 function validateContactQuery(req, res, next) {
-  const allowedFields = ['page', 'size', 'sortBy', 'sortDir'];
+  const allowedFields = ['page', 'size', 'sortDir'];
   const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
   const { page, size, errors } = parsePagination(req.query);
-  const sortBy = req.query.sortBy || 'createdAt';
   const sortDir = (req.query.sortDir || 'desc').toLowerCase();
 
   if (unknownField) {
     errors.push({ field: unknownField, message: `${unknownField} is not allowed` });
   }
 
-
-  if (!CONTACT_SORT_FIELDS[sortBy]) {
-    errors.push({
-      field: 'sortBy',
-      message: `sortBy must be one of: ${Object.keys(CONTACT_SORT_FIELDS).join(', ')}`,
-    });
-  }
 
   if (!['asc', 'desc'].includes(sortDir)) {
     errors.push({ field: 'sortDir', message: 'sortDir must be asc or desc' });
@@ -98,7 +89,7 @@ function validateContactQuery(req, res, next) {
   req.query = {
     page,
     size,
-    sortBy: CONTACT_SORT_FIELDS[sortBy],
+    sortBy: 'createdAt',
     sortDir,
   };
 

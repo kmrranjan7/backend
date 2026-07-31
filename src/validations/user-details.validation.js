@@ -79,13 +79,17 @@ function validateId(req, res, next) {
 }
 
 function validatePagination(req, res, next) {
-  const unknownField = Object.keys(req.query).find((field) => !['page', 'size'].includes(field));
+  const unknownField = Object.keys(req.query).find((field) => !['page', 'size', 'sortDir'].includes(field));
   const { page, size, errors } = parsePagination(req.query);
+  const sortDir = (req.query.sortDir || 'desc').toLowerCase();
 
   if (unknownField) errors.push({ field: unknownField, message: `${unknownField} is not allowed` });
+  if (!['asc', 'desc'].includes(sortDir)) {
+    errors.push({ field: 'sortDir', message: 'sortDir must be asc or desc' });
+  }
   if (errors.length) return next(new ApiError(422, 'Validation failed', errors));
 
-  req.query = { page, size };
+  req.query = { page, size, sortDir };
   return next();
 }
 

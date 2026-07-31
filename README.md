@@ -19,7 +19,7 @@ All endpoints are under `/api/v1/users`.
 | Method | Path | Description |
 | --- | --- | --- |
 | POST | `/` | Create a user |
-| GET | `/?page=1&limit=20` | List users |
+| GET | `/?page=0&size=20&sortDir=desc` | List users by creation date |
 | GET | `/:id` | Get one user |
 | PUT | `/:id` | Update one or more user fields |
 | DELETE | `/:id` | Delete a user |
@@ -73,12 +73,15 @@ The post module mirrors the fields and business rules of the Java `Post` entity.
 | DELETE | `/api/v1/posts/:postId` | Delete a post |
 
 List query parameters are `search`, `postType`, `page` (0-based), `size` (maximum 100),
-`sortBy`, and `sortDir`.
+and `sortDir`. Post listings always sort by `startDate`; `sortDir` accepts `asc` or `desc`.
 
 Post reads use a bounded in-memory TTL cache. Cache TTL, entry count, total bytes, and
 maximum value bytes are configured through environment variables. Creating, updating,
 or deleting a post clears the complete in-memory cache to prevent stale dependent data.
 The complete cache is also cleared on the configured interval (30 minutes by default).
+
+Post-type listings at `/api/v1/jobs` require `postType` and accept an optional
+`status=PUBLISHED` or `status=DRAFT` filter.
 
 ## Contact API
 
@@ -90,6 +93,7 @@ validation constraints, and response fields.
 | POST | `/api/contact` | Save a contact submission |
 | GET | `/api/contact` | List contact submissions with bounded pagination |
 
-The list accepts `page` (0-based), `size` (maximum 100), `sortBy`, and `sortDir`.
+The list accepts `page` (0-based), `size` (maximum 100), and `sortDir`.
+User and contact listings always sort by `createdAt`; `sortDir` accepts `asc` or `desc`.
 Contact submissions are not cached because they contain personal information, and this
 module has no dependency on the application cache.

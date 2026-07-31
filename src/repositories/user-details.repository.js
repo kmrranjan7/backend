@@ -5,11 +5,11 @@ class UserDetailsRepository {
     return UserDetails.create(payload);
   }
 
-  async findAll({ limit, offset }) {
+  async findAll({ limit, offset, sortDir }) {
     return UserDetails.findAndCountAll({
       limit,
       offset,
-      order: [['createdAt', 'DESC']],
+      order: [['createdAt', sortDir]],
     });
   }
 

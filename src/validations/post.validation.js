@@ -3,7 +3,6 @@ const { parsePagination } = require('../utils/pagination');
 const {
   POST_TYPES,
   POST_STATUSES,
-  POST_SORT_FIELDS,
 } = require('../constants/post.constants');
 
 const fieldRules = {
@@ -130,7 +129,7 @@ function validatePostId(req, res, next) {
 }
 
 function validatePostQuery(req, res, next) {
-  const allowedQueryFields = ['search', 'postType', 'page', 'size', 'sortBy', 'sortDir'];
+  const allowedQueryFields = ['search', 'postType', 'page', 'size', 'sortDir'];
   const unknownField = Object.keys(req.query).find((field) => !allowedQueryFields.includes(field));
 
   if (unknownField) {
@@ -140,15 +139,7 @@ function validatePostQuery(req, res, next) {
   }
 
   const { page, size, errors } = parsePagination(req.query);
-  const sortBy = req.query.sortBy || 'createdAt';
   const sortDir = (req.query.sortDir || 'desc').toLowerCase();
-
-  if (!POST_SORT_FIELDS[sortBy]) {
-    errors.push({
-      field: 'sortBy',
-      message: `sortBy must be one of: ${Object.keys(POST_SORT_FIELDS).join(', ')}`,
-    });
-  }
 
   if (!['asc', 'desc'].includes(sortDir)) {
     errors.push({ field: 'sortDir', message: 'sortDir must be asc or desc' });
@@ -177,7 +168,7 @@ function validatePostQuery(req, res, next) {
     postType,
     page,
     size,
-    sortBy: POST_SORT_FIELDS[sortBy],
+    sortBy: 'startDate',
     sortDir,
   };
 

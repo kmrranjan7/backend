@@ -8,6 +8,7 @@ const { successResponse } = require('../utils/api-response');
 const cache = require('../config/cache');
 
 const repository = new PostRepository();
+const LISTING_STATUSES = Object.freeze(['PUBLISHED', 'DRAFT']);
 
 function normalizePostType(value) {
   return String(value ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_');
@@ -24,18 +25,22 @@ function toListingItem(post) {
   return {
     id: value.postId,
     title: value.postTitle,
+    slug: value.postSlug,
     startDate: value.startDate,
     lastDate: value.endDate,
     status: value.postStatus,
     state: value.stateName,
+    vacancies: value.vacancies,
     department: value.department,
+    qualification: value.qualification,
   };
 }
 
 router.get('/', asyncHandler(async (req, res) => {
-  const allowedFields = ['postType', 'search', 'page', 'size', 'sortDir'];
+  const allowedFields = ['postType', 'status', 'search', 'page', 'size', 'sortDir'];
   const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
   const postType = normalizePostType(req.query.postType);
+  const status = String(req.query.status ?? '').trim().toUpperCase();
   const searchValue = String(req.query.search ?? '').trim();
   const sortDir = String(req.query.sortDir ?? 'desc').trim().toLowerCase();
   const { page, size, errors } = parsePagination(req.query);
@@ -48,6 +53,9 @@ router.get('/', asyncHandler(async (req, res) => {
   } else if (!POST_TYPES.includes(postType)) {
     errors.push({ field: 'postType', message: `postType must be one of: ${POST_TYPES.join(', ')}` });
   }
+  if (status && !LISTING_STATUSES.includes(status)) {
+    errors.push({ field: 'status', message: 'status must be PUBLISHED or DRAFT' });
+  }
   if (searchValue.length > 100) {
     errors.push({ field: 'search', message: 'search must not exceed 100 characters' });
   }
@@ -58,6 +66,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   const cacheKey = `post-listing:${JSON.stringify({
     postType,
+    status,
     search: searchValue.toLowerCase(),
     page,
     size,
@@ -76,9 +85,10 @@ router.get('/', asyncHandler(async (req, res) => {
   const { rows, count } = await repository.findAll({
     search: toSearchPattern(searchValue),
     postType,
+    postStatus: status || undefined,
     limit: size,
     offset: page * size,
-    sortBy: 'createdAt',
+    sortBy: 'startDate',
     sortDir: sortDir.toUpperCase(),
   });
 
@@ -87,7 +97,7 @@ router.get('/', asyncHandler(async (req, res) => {
     page,
     size,
     totalElements: count,
-    sort: `createdAt,${sortDir}`,
+    sort: `startDate,${sortDir}`,
   });
 
   cache.set(cacheKey, pageResponse);
