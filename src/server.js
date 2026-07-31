@@ -13,6 +13,9 @@ async function startServer() {
     server = app.listen(env.port, () => {
       console.log(`Server running on port ${env.port} in ${env.nodeEnv} mode`);
     });
+    server.requestTimeout = 30000;
+    server.headersTimeout = 35000;
+    server.keepAliveTimeout = 5000;
   } catch (error) {
     console.error('Unable to start server:', error);
     await shutdown('startupFailure', 1);

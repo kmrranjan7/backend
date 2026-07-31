@@ -69,8 +69,8 @@ const Post = sequelize.define(
       { name: 'idx_posts_status', fields: ['post_status'] },
       { name: 'idx_posts_created', fields: ['created_at'] },
       {
-        name: 'idx_posts_type_status_created',
-        fields: ['post_type', 'post_status', 'created_at'],
+        name: 'idx_posts_type_status_start_date',
+        fields: ['post_type', 'post_status', 'start_date'],
       },
     ],
   },

@@ -6,6 +6,8 @@ class BoundedTtlCache {
     this.maxValueBytes = maxValueBytes;
     this.currentBytes = 0;
     this.entries = new Map();
+    this.pendingLoads = new Map();
+    this.generation = 0;
   }
 
   get(key) {
@@ -47,6 +49,26 @@ class BoundedTtlCache {
     return true;
   }
 
+  async getOrLoad(key, loader) {
+    const cached = this.get(key);
+    if (cached !== undefined) return { value: cached, status: 'HIT' };
+
+    const pending = this.pendingLoads.get(key);
+    if (pending) return { value: await pending, status: 'COALESCED' };
+
+    const generation = this.generation;
+    const load = Promise.resolve().then(loader);
+    this.pendingLoads.set(key, load);
+
+    try {
+      const value = await load;
+      if (generation === this.generation) this.set(key, value);
+      return { value, status: 'MISS' };
+    } finally {
+      if (this.pendingLoads.get(key) === load) this.pendingLoads.delete(key);
+    }
+  }
+
   delete(key) {
     const entry = this.entries.get(key);
     if (!entry) return false;
@@ -56,12 +78,14 @@ class BoundedTtlCache {
   }
 
   deleteByPrefix(prefix) {
+    this.generation += 1;
     for (const key of this.entries.keys()) {
       if (key.startsWith(prefix)) this.delete(key);
     }
   }
 
   clear() {
+    this.generation += 1;
     this.entries.clear();
     this.currentBytes = 0;
   }

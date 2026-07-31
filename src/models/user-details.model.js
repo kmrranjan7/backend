@@ -42,6 +42,9 @@ const UserDetails = sequelize.define(
     defaultScope: {
       attributes: { exclude: ['passwordHash'] },
     },
+    indexes: [
+      { name: 'idx_user_details_created', fields: ['created_at'] },
+    ],
   },
 );
 

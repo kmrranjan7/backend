@@ -15,18 +15,20 @@ class PostController {
   };
 
   getByPostId = async (req, res) => {
-    const post = await this.service.getByPostId(req.params.postId);
+    const result = await this.service.getByPostId(req.params.postId);
+    res.set('X-Cache', result.cacheStatus);
     return successResponse(res, {
       message: 'Post fetched successfully',
-      data: post,
+      data: result.data,
     });
   };
 
   getAll = async (req, res) => {
-    const posts = await this.service.getAll(req.query);
+    const result = await this.service.getAll(req.query);
+    res.set('X-Cache', result.cacheStatus);
     return successResponse(res, {
       message: 'Posts fetched successfully',
-      data: posts,
+      data: result.data,
     });
   };
 

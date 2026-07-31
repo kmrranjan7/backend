@@ -3,6 +3,7 @@ const { parsePagination } = require('../utils/pagination');
 const {
   POST_TYPES,
   POST_STATUSES,
+  POST_SEARCH_MAX_LENGTH,
 } = require('../constants/post.constants');
 
 const fieldRules = {
@@ -146,8 +147,14 @@ function validatePostQuery(req, res, next) {
   }
 
   if (req.query.search !== undefined) {
-    if (typeof req.query.search !== 'string' || req.query.search.trim().length > 100) {
-      errors.push({ field: 'search', message: 'search must not exceed 100 characters' });
+    if (
+      typeof req.query.search !== 'string'
+      || req.query.search.trim().length > POST_SEARCH_MAX_LENGTH
+    ) {
+      errors.push({
+        field: 'search',
+        message: `search must not exceed ${POST_SEARCH_MAX_LENGTH} characters`,
+      });
     }
   }
 

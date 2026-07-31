@@ -1,11 +1,12 @@
 const router = require('express').Router();
 const PostRepository = require('../repositories/post.repository');
-const { POST_TYPES } = require('../constants/post.constants');
+const { POST_TYPES, POST_SEARCH_MAX_LENGTH } = require('../constants/post.constants');
 const { parsePagination, buildPage } = require('../utils/pagination');
 const ApiError = require('../utils/api-error');
 const asyncHandler = require('../middleware/async-handler');
 const { successResponse } = require('../utils/api-response');
 const cache = require('../config/cache');
+const { protectDraftListings } = require('../middleware/admin-auth.middleware');
 
 const repository = new PostRepository();
 const LISTING_STATUSES = Object.freeze(['PUBLISHED', 'DRAFT']);
@@ -36,7 +37,7 @@ function toListingItem(post) {
   };
 }
 
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   const allowedFields = ['postType', 'status', 'search', 'page', 'size', 'sortDir'];
   const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
   const postType = normalizePostType(req.query.postType);
@@ -56,8 +57,11 @@ router.get('/', asyncHandler(async (req, res) => {
   if (status && !LISTING_STATUSES.includes(status)) {
     errors.push({ field: 'status', message: 'status must be PUBLISHED or DRAFT' });
   }
-  if (searchValue.length > 100) {
-    errors.push({ field: 'search', message: 'search must not exceed 100 characters' });
+  if (searchValue.length > POST_SEARCH_MAX_LENGTH) {
+    errors.push({
+      field: 'search',
+      message: `search must not exceed ${POST_SEARCH_MAX_LENGTH} characters`,
+    });
   }
   if (!['asc', 'desc'].includes(sortDir)) {
     errors.push({ field: 'sortDir', message: 'sortDir must be asc or desc' });
@@ -72,40 +76,31 @@ router.get('/', asyncHandler(async (req, res) => {
     size,
     sortDir,
   })}`;
-  const cachedPage = cache.get(cacheKey);
-
-  if (cachedPage) {
-    res.set('X-Cache', 'HIT');
-    return successResponse(res, {
-      message: 'Post listings fetched successfully',
-      data: cachedPage,
+  const result = await cache.getOrLoad(cacheKey, async () => {
+    const { rows, count } = await repository.findAll({
+      search: toSearchPattern(searchValue),
+      postType,
+      postStatus: status || undefined,
+      limit: size,
+      offset: page * size,
+      sortBy: 'startDate',
+      sortDir: sortDir.toUpperCase(),
     });
-  }
 
-  const { rows, count } = await repository.findAll({
-    search: toSearchPattern(searchValue),
-    postType,
-    postStatus: status || undefined,
-    limit: size,
-    offset: page * size,
-    sortBy: 'startDate',
-    sortDir: sortDir.toUpperCase(),
+    return buildPage({
+      content: rows.map(toListingItem),
+      page,
+      size,
+      totalElements: count,
+      sort: `startDate,${sortDir}`,
+    });
   });
 
-  const pageResponse = buildPage({
-    content: rows.map(toListingItem),
-    page,
-    size,
-    totalElements: count,
-    sort: `startDate,${sortDir}`,
-  });
-
-  cache.set(cacheKey, pageResponse);
-  res.set('X-Cache', 'MISS');
+  res.set('X-Cache', result.status);
 
   return successResponse(res, {
     message: 'Post listings fetched successfully',
-    data: pageResponse,
+    data: result.value,
   });
 }));
 

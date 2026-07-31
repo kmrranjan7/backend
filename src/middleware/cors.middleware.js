@@ -12,7 +12,7 @@ const corsMiddleware = cors({
     return callback(new ApiError(403, 'Origin is not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: true,
   optionsSuccessStatus: 204,
   maxAge: 600,

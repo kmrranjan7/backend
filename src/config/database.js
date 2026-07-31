@@ -11,10 +11,10 @@ const sequelize = new Sequelize(env.database.name, env.database.user, env.databa
     freezeTableName: true,
   },
   pool: {
-    max: 8,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
+    max: env.database.pool.max,
+    min: env.database.pool.min,
+    acquire: env.database.pool.acquireMs,
+    idle: env.database.pool.idleMs,
   },
 });
 

@@ -5,6 +5,7 @@ const { buildPage } = require('../utils/pagination');
 
 const randomIntAsync = promisify(randomInt);
 const CACHE_PREFIX = 'posts:';
+const LISTING_CACHE_PREFIX = 'post-listing:';
 const MAX_ID_ATTEMPTS = 5;
 
 class PostService {
@@ -28,42 +29,37 @@ class PostService {
 
   async getByPostId(postId) {
     const cacheKey = `${CACHE_PREFIX}id:${postId}`;
-    const cached = this.cache.get(cacheKey);
+    const result = await this.cache.getOrLoad(cacheKey, async () => {
+      const post = await this.getExistingPost(postId);
+      return this.toResponse(post);
+    });
 
-    if (cached) return cached;
-
-    const post = await this.getExistingPost(postId);
-    const response = this.toResponse(post);
-    this.cache.set(cacheKey, response);
-    return response;
+    return { data: result.value, cacheStatus: result.status };
   }
 
   async getAll(query) {
     const cacheKey = `${CACHE_PREFIX}list:${JSON.stringify(query)}`;
-    const cached = this.cache.get(cacheKey);
+    const result = await this.cache.getOrLoad(cacheKey, async () => {
+      const search = query.search ? `%${this.escapeLike(query.search.trim())}%` : undefined;
+      const { rows, count } = await this.repository.findAll({
+        search,
+        postType: query.postType,
+        limit: query.size,
+        offset: query.page * query.size,
+        sortBy: query.sortBy,
+        sortDir: query.sortDir.toUpperCase(),
+      });
 
-    if (cached) return cached;
-
-    const search = query.search ? `%${this.escapeLike(query.search.trim())}%` : undefined;
-    const { rows, count } = await this.repository.findAll({
-      search,
-      postType: query.postType,
-      limit: query.size,
-      offset: query.page * query.size,
-      sortBy: query.sortBy,
-      sortDir: query.sortDir.toUpperCase(),
+      return buildPage({
+        content: rows.map((post) => this.toResponse(post)),
+        page: query.page,
+        size: query.size,
+        totalElements: count,
+        sort: `${query.sortBy},${query.sortDir}`,
+      });
     });
 
-    const response = buildPage({
-      content: rows.map((post) => this.toResponse(post)),
-      page: query.page,
-      size: query.size,
-      totalElements: count,
-      sort: `${query.sortBy},${query.sortDir}`,
-    });
-
-    this.cache.set(cacheKey, response);
-    return response;
+    return { data: result.value, cacheStatus: result.status };
   }
 
   async update(postId, payload) {
@@ -160,7 +156,8 @@ class PostService {
   }
 
   invalidateCache() {
-    this.cache.clear();
+    this.cache.deleteByPrefix(CACHE_PREFIX);
+    this.cache.deleteByPrefix(LISTING_CACHE_PREFIX);
   }
 
   toResponse(post) {

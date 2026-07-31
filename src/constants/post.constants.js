@@ -16,4 +16,6 @@ const POST_STATUSES = Object.freeze([
   'PUBLISHED',
 ]);
 
-module.exports = { POST_TYPES, POST_STATUSES };
+const POST_SEARCH_MAX_LENGTH = 50;
+
+module.exports = { POST_TYPES, POST_STATUSES, POST_SEARCH_MAX_LENGTH };
