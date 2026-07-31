@@ -13,6 +13,15 @@ function errorHandler(error, req, res, next) {
   let statusCode = error.statusCode || 500;
   let message = error.message || 'Internal server error';
   let details = error.details || null;
+  const databaseErrorCode = error.parent?.code || error.original?.code;
+  const temporaryDatabaseErrors = new Set([
+    'ETIMEDOUT',
+    'ECONNRESET',
+    'ECONNREFUSED',
+    'ER_CON_COUNT_ERROR',
+    'ER_USER_LIMIT_REACHED',
+    'PROTOCOL_CONNECTION_LOST',
+  ]);
 
   if (error instanceof UniqueConstraintError) {
     statusCode = 409;
@@ -36,11 +45,25 @@ function errorHandler(error, req, res, next) {
       field: path,
       message: validationMessage,
     }));
+  } else if (temporaryDatabaseErrors.has(databaseErrorCode)) {
+    statusCode = 503;
+    message = 'The service is temporarily busy. Please try again shortly.';
+    details = null;
+    res.set('Retry-After', '5');
   }
 
   if (statusCode >= 500) {
-    console.error(error);
-    message = 'Internal server error';
+    console.error({
+      name: error.name,
+      code: databaseErrorCode,
+      message: error.message,
+      method: req.method,
+      path: req.originalUrl,
+    });
+
+    if (statusCode !== 503) {
+      message = 'Internal server error';
+    }
     details = null;
   }
 

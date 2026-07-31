@@ -21,6 +21,12 @@ Traffic controls are configured with `RATE_LIMIT_*` and `CONTACT_RATE_LIMIT_*`.
 JSON responses larger than 1 KB are compressed, and the MySQL pool is configured with
 `DB_POOL_MAX`, `DB_POOL_MIN`, `DB_POOL_ACQUIRE_MS`, and `DB_POOL_IDLE_MS`.
 
+Dashboard users sign in through `POST /api/v1/auth/login` using their email as the
+username and their existing password. Successful login returns an eight-hour signed
+token. `GET /api/v1/auth/session` validates the token. Login attempts are rate limited,
+inactive users cannot sign in, and invalid credentials always return one generic error.
+Use the production API key to create the first dashboard user in a fresh database.
+
 ## Endpoints
 
 All endpoints are under `/api/v1/users`.

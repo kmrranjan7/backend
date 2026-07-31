@@ -36,4 +36,15 @@ const contactSubmissionLimiter = limiter({
   identifier: 'contact-submission',
 });
 
-module.exports = { publicApiLimiter, writeApiLimiter, contactSubmissionLimiter };
+const loginLimiter = limiter({
+  windowMs: env.rateLimit.contactWindowMs,
+  limit: env.rateLimit.loginMax,
+  identifier: 'dashboard-login',
+});
+
+module.exports = {
+  publicApiLimiter,
+  writeApiLimiter,
+  contactSubmissionLimiter,
+  loginLimiter,
+};

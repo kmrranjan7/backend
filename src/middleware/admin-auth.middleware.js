@@ -1,4 +1,5 @@
 const { timingSafeEqual } = require('crypto');
+const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const ApiError = require('../utils/api-error');
 
@@ -26,17 +27,31 @@ function requireAdmin(req, res, next) {
   }
 
   const candidate = suppliedApiKey(req);
-  if (!candidate || !secureEqual(candidate, env.adminApiKey)) {
-    return next(new ApiError(401, 'Administrative authentication is required'));
+  if (candidate && secureEqual(candidate, env.adminApiKey)) {
+    req.admin = { sub: 'api-key', email: null, type: 'api-key' };
+    return next();
   }
 
-  return next();
+  if (candidate) {
+    try {
+      req.admin = jwt.verify(candidate, env.adminApiKey, {
+        algorithms: ['HS256'],
+        issuer: 'sarkari-global-result-api',
+        audience: 'sarkari-global-result-dashboard',
+      });
+      return next();
+    } catch {
+      // Use one response for expired, malformed, and invalid tokens.
+    }
+  }
+
+  return next(new ApiError(401, 'Administrative authentication is required'));
 }
 
 function protectDraftListings(req, res, next) {
-  return String(req.query.status || '').trim().toUpperCase() === 'DRAFT'
-    ? requireAdmin(req, res, next)
-    : next();
+  return String(req.query.status || '').trim().toUpperCase() === 'PUBLISHED'
+    ? next()
+    : requireAdmin(req, res, next);
 }
 
 module.exports = { requireAdmin, protectDraftListings };

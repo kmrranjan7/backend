@@ -21,6 +21,10 @@ class UserDetailsRepository {
     return UserDetails.findOne({ where: { email } });
   }
 
+  async findByEmailWithPassword(email) {
+    return UserDetails.scope(null).findOne({ where: { email } });
+  }
+
   async update(user, payload) {
     return user.update(payload);
   }

@@ -54,8 +54,8 @@ function parseCommaSeparatedList(value, fallback) {
     .filter(Boolean);
 }
 
-const databasePoolMax = parsePositiveInteger(process.env.DB_POOL_MAX, 20, 'DB_POOL_MAX');
-const databasePoolMin = parseNonNegativeInteger(process.env.DB_POOL_MIN, 2, 'DB_POOL_MIN');
+const databasePoolMax = parsePositiveInteger(process.env.DB_POOL_MAX, 5, 'DB_POOL_MAX');
+const databasePoolMin = parseNonNegativeInteger(process.env.DB_POOL_MIN, 1, 'DB_POOL_MIN');
 
 if (databasePoolMin > databasePoolMax) {
   throw new Error('DB_POOL_MIN must not exceed DB_POOL_MAX');
@@ -86,10 +86,18 @@ module.exports = Object.freeze({
       max: databasePoolMax,
       min: databasePoolMin,
       acquireMs: parsePositiveInteger(process.env.DB_POOL_ACQUIRE_MS, 30000, 'DB_POOL_ACQUIRE_MS'),
-      idleMs: parsePositiveInteger(process.env.DB_POOL_IDLE_MS, 10000, 'DB_POOL_IDLE_MS'),
+      idleMs: parsePositiveInteger(process.env.DB_POOL_IDLE_MS, 300000, 'DB_POOL_IDLE_MS'),
     }),
   }),
   adminApiKey: process.env.ADMIN_API_KEY || '',
+  auth: Object.freeze({
+    tokenTtl: process.env.AUTH_TOKEN_TTL || '2h',
+    cookieMaxAgeSeconds: parsePositiveInteger(
+      process.env.AUTH_COOKIE_MAX_AGE_SECONDS,
+      7200,
+      'AUTH_COOKIE_MAX_AGE_SECONDS',
+    ),
+  }),
   rateLimit: Object.freeze({
     windowMs: parsePositiveInteger(process.env.RATE_LIMIT_WINDOW_MS, 60000, 'RATE_LIMIT_WINDOW_MS'),
     publicMax: parsePositiveInteger(process.env.RATE_LIMIT_PUBLIC_MAX, 600, 'RATE_LIMIT_PUBLIC_MAX'),
@@ -100,6 +108,7 @@ module.exports = Object.freeze({
       'CONTACT_RATE_LIMIT_WINDOW_MS',
     ),
     contactMax: parsePositiveInteger(process.env.CONTACT_RATE_LIMIT_MAX, 10, 'CONTACT_RATE_LIMIT_MAX'),
+    loginMax: parsePositiveInteger(process.env.LOGIN_RATE_LIMIT_MAX, 10, 'LOGIN_RATE_LIMIT_MAX'),
   }),
   cache: Object.freeze({
     ttlMs: parsePositiveInteger(process.env.CACHE_TTL_MS, 1800000, 'CACHE_TTL_MS'),
