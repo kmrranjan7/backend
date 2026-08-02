@@ -27,6 +27,7 @@ function toListingItem(post) {
     id: value.postId,
     title: value.postTitle,
     slug: value.postSlug,
+    postType: value.postType,
     startDate: value.startDate,
     lastDate: value.endDate,
     status: value.postStatus,
@@ -37,11 +38,42 @@ function toListingItem(post) {
   };
 }
 
+function toPublicPostDetail(post) {
+  const value = typeof post.toJSON === 'function' ? post.toJSON() : post;
+  return {
+    ...value,
+    id: value.postId,
+    title: value.postTitle,
+    slug: value.postSlug,
+    lastDate: value.endDate,
+    status: value.postStatus,
+  };
+}
+
+router.get('/slug/:slug', asyncHandler(async (req, res) => {
+  const slug = String(req.params.slug ?? '').trim();
+  if (!slug) throw new ApiError(422, 'slug is required');
+
+  const result = await cache.getOrLoad(`post-listing:slug:${slug}`, async () => {
+    const post = await repository.findBySlug(slug);
+    if (!post || post.postStatus !== 'PUBLISHED') {
+      throw new ApiError(404, 'Published post not found');
+    }
+    return toPublicPostDetail(post);
+  });
+
+  res.set('X-Cache', result.status);
+  return successResponse(res, {
+    message: 'Published post fetched successfully',
+    data: result.value,
+  });
+}));
+
 router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   const allowedFields = ['postType', 'status', 'search', 'page', 'size', 'sortDir'];
   const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
   const postType = normalizePostType(req.query.postType);
-  const status = String(req.query.status ?? '').trim().toUpperCase();
+  const status = String(req.query.status ?? 'PUBLISHED').trim().toUpperCase();
   const searchValue = String(req.query.search ?? '').trim();
   const sortDir = String(req.query.sortDir ?? 'desc').trim().toLowerCase();
   const { page, size, errors } = parsePagination(req.query);
@@ -49,9 +81,7 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   if (unknownField) {
     errors.push({ field: unknownField, message: `${unknownField} is not allowed` });
   }
-  if (!postType) {
-    errors.push({ field: 'postType', message: 'postType is required' });
-  } else if (!POST_TYPES.includes(postType)) {
+  if (postType && !POST_TYPES.includes(postType)) {
     errors.push({ field: 'postType', message: `postType must be one of: ${POST_TYPES.join(', ')}` });
   }
   if (status && !LISTING_STATUSES.includes(status)) {
@@ -69,7 +99,7 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   if (errors.length) throw new ApiError(422, 'Validation failed', errors);
 
   const cacheKey = `post-listing:${JSON.stringify({
-    postType,
+    postType: postType || 'ALL',
     status,
     search: searchValue.toLowerCase(),
     page,
@@ -79,8 +109,8 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   const result = await cache.getOrLoad(cacheKey, async () => {
     const { rows, count } = await repository.findAll({
       search: toSearchPattern(searchValue),
-      postType,
-      postStatus: status || undefined,
+      postType: postType || undefined,
+      postStatus: status,
       limit: size,
       offset: page * size,
       sortBy: 'startDate',

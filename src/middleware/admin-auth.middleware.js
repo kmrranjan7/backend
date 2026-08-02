@@ -49,7 +49,7 @@ function requireAdmin(req, res, next) {
 }
 
 function protectDraftListings(req, res, next) {
-  return String(req.query.status || '').trim().toUpperCase() === 'PUBLISHED'
+  return String(req.query.status || 'PUBLISHED').trim().toUpperCase() === 'PUBLISHED'
     ? next()
     : requireAdmin(req, res, next);
 }
