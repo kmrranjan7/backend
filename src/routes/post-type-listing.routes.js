@@ -20,6 +20,27 @@ function toSearchPattern(value) {
   return normalized ? `%${normalized.replace(/[\\%_]/g, '\\$&')}%` : undefined;
 }
 
+function firstImageUrl(value) {
+  if (Array.isArray(value)) {
+    return value.find((url) => typeof url === 'string' && url.trim())?.trim() ?? '';
+  }
+
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return '';
+
+  try {
+    const parsed = JSON.parse(normalized);
+    if (Array.isArray(parsed)) {
+      return parsed.find((url) => typeof url === 'string' && url.trim())?.trim() ?? '';
+    }
+    if (typeof parsed === 'string') return parsed.trim();
+  } catch {
+    // Support existing comma-separated image URL values.
+  }
+
+  return normalized.split(',').map((url) => url.trim()).find(Boolean) ?? '';
+}
+
 function toListingItem(post) {
   const value = typeof post.toJSON === 'function' ? post.toJSON() : post;
 
@@ -27,6 +48,8 @@ function toListingItem(post) {
     id: value.postId,
     title: value.postTitle,
     slug: value.postSlug,
+    createdAt: value.createdAt,
+    imageUrl: firstImageUrl(value.imageUrls),
     postType: value.postType,
     startDate: value.startDate,
     lastDate: value.endDate,
