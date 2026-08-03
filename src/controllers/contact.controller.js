@@ -15,10 +15,11 @@ class ContactController {
   };
 
   getAll = async (req, res) => {
-    const contacts = await this.service.getAll(req.query);
+    const result = await this.service.getAll(req.query);
+    res.set('X-Cache', result.status);
     return successResponse(res, {
       message: 'Contacts fetched successfully',
-      data: contacts,
+      data: result.value,
     });
   };
 }

@@ -54,7 +54,7 @@ function parseCommaSeparatedList(value, fallback) {
     .filter(Boolean);
 }
 
-const databasePoolMax = parsePositiveInteger(process.env.DB_POOL_MAX, 5, 'DB_POOL_MAX');
+const databasePoolMax = parsePositiveInteger(process.env.DB_POOL_MAX, 2, 'DB_POOL_MAX');
 const databasePoolMin = parseNonNegativeInteger(process.env.DB_POOL_MIN, 1, 'DB_POOL_MIN');
 
 if (databasePoolMin > databasePoolMax) {
@@ -86,7 +86,7 @@ module.exports = Object.freeze({
       max: databasePoolMax,
       min: databasePoolMin,
       acquireMs: parsePositiveInteger(process.env.DB_POOL_ACQUIRE_MS, 30000, 'DB_POOL_ACQUIRE_MS'),
-      idleMs: parsePositiveInteger(process.env.DB_POOL_IDLE_MS, 300000, 'DB_POOL_IDLE_MS'),
+      idleMs: parsePositiveInteger(process.env.DB_POOL_IDLE_MS, 600000, 'DB_POOL_IDLE_MS'),
     }),
   }),
   adminApiKey: process.env.ADMIN_API_KEY || '',

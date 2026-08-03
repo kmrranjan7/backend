@@ -1,29 +1,33 @@
 const { buildPage } = require('../utils/pagination');
 
 class ContactService {
-  constructor(contactRepository) {
+  constructor(contactRepository, cache) {
     this.repository = contactRepository;
+    this.cache = cache;
   }
 
   async create(payload) {
     const contact = await this.repository.create(this.normalize(payload));
-
+    this.cache.deleteByPrefix('contacts:');
     return this.toResponse(contact);
   }
 
   async getAll({ page, size, sortBy, sortDir }) {
-    const { rows, count } = await this.repository.findAll({
-      limit: size,
-      offset: page * size,
-      sortBy,
-      sortDir: sortDir.toUpperCase(),
-    });
-    return buildPage({
-      content: rows.map((contact) => this.toResponse(contact)),
-      page,
-      size,
-      totalElements: count,
-      sort: `${sortBy},${sortDir}`,
+    const cacheKey = `contacts:list:${page}:${size}:${sortBy}:${sortDir}`;
+    return this.cache.getOrLoad(cacheKey, async () => {
+      const { rows, count } = await this.repository.findAll({
+        limit: size,
+        offset: page * size,
+        sortBy,
+        sortDir: sortDir.toUpperCase(),
+      });
+      return buildPage({
+        content: rows.map((contact) => this.toResponse(contact)),
+        page,
+        size,
+        totalElements: count,
+        sort: `${sortBy},${sortDir}`,
+      });
     });
   }
 

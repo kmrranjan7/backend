@@ -16,17 +16,19 @@ class UserDetailsController {
 
   getAll = async (req, res) => {
     const result = await this.service.getAll(req.query);
+    res.set('X-Cache', result.status);
     return successResponse(res, {
       message: 'Users retrieved successfully',
-      data: result,
+      data: result.value,
     });
   };
 
   getById = async (req, res) => {
-    const user = await this.service.getById(req.params.id);
+    const result = await this.service.getById(req.params.id);
+    res.set('X-Cache', result.status);
     return successResponse(res, {
       message: 'User retrieved successfully',
-      data: user,
+      data: result.value,
     });
   };
 

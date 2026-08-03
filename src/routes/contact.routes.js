@@ -2,6 +2,7 @@ const router = require('express').Router();
 const ContactRepository = require('../repositories/contact.repository');
 const ContactService = require('../services/contact.service');
 const ContactController = require('../controllers/contact.controller');
+const cache = require('../config/cache');
 const asyncHandler = require('../middleware/async-handler');
 const { requireAdmin } = require('../middleware/admin-auth.middleware');
 const { contactSubmissionLimiter } = require('../middleware/rate-limit.middleware');
@@ -11,7 +12,7 @@ const {
 } = require('../validations/contact.validation');
 
 const repository = new ContactRepository();
-const service = new ContactService(repository);
+const service = new ContactService(repository, cache);
 const controller = new ContactController(service);
 
 router.post('/', contactSubmissionLimiter, validateContact, asyncHandler(controller.create));

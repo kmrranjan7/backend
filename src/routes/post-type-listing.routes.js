@@ -86,6 +86,7 @@ router.get('/slug/:slug', asyncHandler(async (req, res) => {
   });
 
   res.set('X-Cache', result.status);
+  res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
   return successResponse(res, {
     message: 'Published post fetched successfully',
     data: result.value,
@@ -150,6 +151,9 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   });
 
   res.set('X-Cache', result.status);
+  if (status === 'PUBLISHED') {
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+  }
 
   return successResponse(res, {
     message: 'Post listings fetched successfully',

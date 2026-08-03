@@ -5,6 +5,10 @@ const sequelize = new Sequelize(env.database.name, env.database.user, env.databa
   host: env.database.host,
   port: env.database.port,
   dialect: 'mysql',
+  dialectOptions: {
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+  },
   logging: env.nodeEnv === 'development' ? console.log : false,
   define: {
     underscored: true,

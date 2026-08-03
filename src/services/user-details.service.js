@@ -3,8 +3,9 @@ const { hashPassword } = require('../utils/password');
 const { buildPage } = require('../utils/pagination');
 
 class UserDetailsService {
-  constructor(userDetailsRepository) {
+  constructor(userDetailsRepository, cache) {
     this.repository = userDetailsRepository;
+    this.cache = cache;
   }
 
   async create(payload) {
@@ -15,27 +16,32 @@ class UserDetailsService {
       throw new ApiError(409, 'A user with this email already exists');
     }
 
-    return this.repository.create(normalizedPayload);
+    const user = await this.repository.create(normalizedPayload);
+    this.invalidateCache();
+    return user;
   }
 
   async getAll({ page, size, sortDir }) {
-    const { rows, count } = await this.repository.findAll({
-      limit: size,
-      offset: page * size,
-      sortDir: sortDir.toUpperCase(),
-    });
+    const cacheKey = `users:list:${page}:${size}:${sortDir}`;
+    return this.cache.getOrLoad(cacheKey, async () => {
+      const { rows, count } = await this.repository.findAll({
+        limit: size,
+        offset: page * size,
+        sortDir: sortDir.toUpperCase(),
+      });
 
-    return buildPage({
-      content: rows,
-      page,
-      size,
-      totalElements: count,
-      sort: `createdAt,${sortDir}`,
+      return buildPage({
+        content: rows,
+        page,
+        size,
+        totalElements: count,
+        sort: `createdAt,${sortDir}`,
+      });
     });
   }
 
   async getById(id) {
-    return this.getExistingUser(id);
+    return this.cache.getOrLoad(`users:id:${id}`, () => this.getExistingUser(id));
   }
 
   async update(id, payload) {
@@ -50,12 +56,15 @@ class UserDetailsService {
       }
     }
 
-    return this.repository.update(user, normalizedPayload);
+    const updatedUser = await this.repository.update(user, normalizedPayload);
+    this.invalidateCache();
+    return updatedUser;
   }
 
   async delete(id) {
     const user = await this.getExistingUser(id);
     await this.repository.delete(user);
+    this.invalidateCache();
   }
 
   async getExistingUser(id) {
@@ -82,6 +91,10 @@ class UserDetailsService {
     }
 
     return normalized;
+  }
+
+  invalidateCache() {
+    this.cache.deleteByPrefix('users:');
   }
 }
 
