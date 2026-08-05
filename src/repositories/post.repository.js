@@ -6,7 +6,7 @@ class PostRepository {
     return Post.create(payload);
   }
 
-  async findAll({ search, postType, postStatus, limit, offset, sortBy, sortDir }) {
+  async findAll({ search, postType, postStatus, limit, offset, sortBy, sortDir, priorityFirst = false }) {
     const filters = {};
 
     if (postType) filters.postType = postType;
@@ -27,7 +27,11 @@ class PostRepository {
       where: filters,
       limit,
       offset,
-      order: [[sortBy, sortDir]],
+      order: [
+        ...(priorityFirst ? [['priorityScore', 'ASC']] : []),
+        [sortBy, sortDir],
+        ['createdAt', 'DESC'],
+      ],
       distinct: true,
     });
   }

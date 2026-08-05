@@ -58,6 +58,7 @@ function toListingItem(post) {
     vacancies: value.vacancies,
     department: value.department,
     qualification: value.qualification,
+    priorityScore: value.priorityScore ?? 0,
   };
 }
 
@@ -94,12 +95,13 @@ router.get('/slug/:slug', asyncHandler(async (req, res) => {
 }));
 
 router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
-  const allowedFields = ['postType', 'status', 'search', 'page', 'size', 'sortDir'];
+  const allowedFields = ['postType', 'status', 'search', 'page', 'size', 'sortDir', 'priorityFirst'];
   const unknownField = Object.keys(req.query).find((field) => !allowedFields.includes(field));
   const postType = normalizePostType(req.query.postType);
   const status = String(req.query.status ?? 'PUBLISHED').trim().toUpperCase();
   const searchValue = String(req.query.search ?? '').trim();
   const sortDir = String(req.query.sortDir ?? 'desc').trim().toLowerCase();
+  const priorityFirst = String(req.query.priorityFirst ?? 'false').trim().toLowerCase();
   const { page, size, errors } = parsePagination(req.query);
 
   if (unknownField) {
@@ -120,6 +122,9 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
   if (!['asc', 'desc'].includes(sortDir)) {
     errors.push({ field: 'sortDir', message: 'sortDir must be asc or desc' });
   }
+  if (!['true', 'false'].includes(priorityFirst)) {
+    errors.push({ field: 'priorityFirst', message: 'priorityFirst must be true or false' });
+  }
   if (errors.length) throw new ApiError(422, 'Validation failed', errors);
 
   const cacheKey = `post-listing:${JSON.stringify({
@@ -129,6 +134,7 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
     page,
     size,
     sortDir,
+    priorityFirst,
   })}`;
   const result = await cache.getOrLoad(cacheKey, async () => {
     const { rows, count } = await repository.findAll({
@@ -139,6 +145,7 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
       offset: page * size,
       sortBy: 'startDate',
       sortDir: sortDir.toUpperCase(),
+      priorityFirst: priorityFirst === 'true' && status === 'PUBLISHED',
     });
 
     return buildPage({
@@ -146,7 +153,9 @@ router.get('/', protectDraftListings, asyncHandler(async (req, res) => {
       page,
       size,
       totalElements: count,
-      sort: `startDate,${sortDir}`,
+      sort: priorityFirst === 'true' && status === 'PUBLISHED'
+        ? `priorityScore,desc;startDate,${sortDir}`
+        : `startDate,${sortDir}`,
     });
   });
 
