@@ -2,6 +2,7 @@ const { randomInt } = require('crypto');
 const { promisify } = require('util');
 const ApiError = require('../utils/api-error');
 const { buildPage } = require('../utils/pagination');
+const googleIndexing = require('./google-indexing.service');
 
 const randomIntAsync = promisify(randomInt);
 const CACHE_PREFIX = 'posts:';
@@ -24,6 +25,7 @@ class PostService {
     const post = await this.repository.create({ ...normalized, postId, applicationId });
 
     this.invalidateCache();
+    await googleIndexing.notify(post);
     return this.toResponse(post);
   }
 
@@ -64,6 +66,7 @@ class PostService {
 
   async update(postId, payload) {
     const post = await this.getExistingPost(postId);
+    const previousPost = post.toJSON();
     const normalized = this.normalize(payload);
 
     this.validateDateRange(normalized.startDate, normalized.endDate);
@@ -71,13 +74,20 @@ class PostService {
 
     const updatedPost = await this.repository.update(post, normalized);
     this.invalidateCache();
+    if (googleIndexing.isEligible(previousPost)
+      && (!googleIndexing.isEligible(updatedPost) || previousPost.postSlug !== updatedPost.postSlug)) {
+      await googleIndexing.notifyDeleted(previousPost);
+    }
+    await googleIndexing.notify(updatedPost);
     return this.toResponse(updatedPost);
   }
 
   async delete(postId) {
     const post = await this.getExistingPost(postId);
+    const deletedPost = post.toJSON();
     await this.repository.delete(post);
     this.invalidateCache();
+    await googleIndexing.notifyDeleted(deletedPost);
   }
 
   async getExistingPost(postId) {

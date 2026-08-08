@@ -49,6 +49,7 @@ function toListingItem(post) {
     title: value.postTitle,
     slug: value.postSlug,
     createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
     imageUrl: firstImageUrl(value.imageUrls),
     postType: value.postType,
     startDate: value.startDate,

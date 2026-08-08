@@ -17,6 +17,15 @@ if (missingVariables.length > 0) {
   throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`);
 }
 
+const googleIndexingEnabled = process.env.GOOGLE_INDEXING_ENABLED === 'true';
+if (googleIndexingEnabled) {
+  const indexingVariables = ['GOOGLE_INDEXING_CLIENT_EMAIL', 'GOOGLE_INDEXING_PRIVATE_KEY'];
+  const missingIndexingVariables = indexingVariables.filter((name) => !process.env[name]);
+  if (missingIndexingVariables.length > 0) {
+    throw new Error(`Missing required Google Indexing API variables: ${missingIndexingVariables.join(', ')}`);
+  }
+}
+
 function parsePort(value, fallback) {
   const port = Number(value || fallback);
 
@@ -90,6 +99,12 @@ module.exports = Object.freeze({
     }),
   }),
   adminApiKey: process.env.ADMIN_API_KEY || '',
+  googleIndexing: Object.freeze({
+    enabled: googleIndexingEnabled,
+    siteUrl: (process.env.FRONTEND_URL || 'https://sarkariglobalresult.com').replace(/\/$/, ''),
+    clientEmail: process.env.GOOGLE_INDEXING_CLIENT_EMAIL || '',
+    privateKey: (process.env.GOOGLE_INDEXING_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  }),
   auth: Object.freeze({
     tokenTtl: process.env.AUTH_TOKEN_TTL || '2h',
     cookieMaxAgeSeconds: parsePositiveInteger(
